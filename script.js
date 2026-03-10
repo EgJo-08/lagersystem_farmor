@@ -109,8 +109,14 @@ function tilføj(data = null) {
     }
 
     deleteItem.addEventListener("click", () => {
+           const confirmDelete = confirm("er du sikker på at du vil slette den?");
+
+    if (confirmDelete) {
+       
+    
         listitem.remove()
         saveData()
+        }
     })
 
     const historik = listitem.querySelector(".historik")
