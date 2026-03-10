@@ -1,81 +1,175 @@
 const listElement = document.querySelector("#drink_list")
 const knap = document.querySelector("#knap")
 
+loadData()
+
+knap.addEventListener("click", () => {
+    tilføj()
+    saveData()
+})
+
+function tilføj(data = null) {
+
+    const listitem = document.createElement("div")
+
+    let number = data?.number || 0
+    let history = data?.history || []
 
 
-
-knap.addEventListener("click", tilføj)
-
-
-function tilføj() {
-    const listitem = document.createElement("div");
-let number = 0
-
+    const week = 1000 * 60 * 60 * 24 * 7
+    history = history.filter(h => Date.now() - h.time < week)
 
     listitem.innerHTML = `
-                    <div class="items">
-                    <input type="file" class="imageInput" accept="image/png, image/jpeg">
-                    <img class="preview" src="">
-                    <input type="text" class="navn" placeholder="navn">
-                    <p>number:${number}</p>
-                    <button class="add">tilføj</button>
-                    <button class="remove">fjern</button>
-                    </div>
-                `;
+        <div class="items">
+            <button class="deleteItem">x</button>
+            <input type="text" class="navn" placeholder="navn" value="${data?.name || ""}">
+            <p class="number">number: ${number}</p>
+            <button class="add">tilføj</button>
+            <button class="removeBtn">fjern</button>
+            <button class="historik">historik</button>
+            <div class="historyBox" style="display:none;"></div>
+        </div>
+    `
+
     listElement.appendChild(listitem)
-    const fileInput = listitem.querySelector(".imageInput")
-    const img = listitem.querySelector(".preview")
 
-    fileInput.addEventListener("change", function () {
-        const file = this.files[0]
-        if (file) {
-            img.src = URL.createObjectURL(file)
-        }
+
+    const nameInput = listitem.querySelector(".navn")
+    const countText = listitem.querySelector(".number")
+
+    nameInput.addEventListener("change", saveData)
+
+    const add = listitem.querySelector(".add")
+    const removeBtn = listitem.querySelector(".removeBtn")
+    const deleteItem = listitem.querySelector(".deleteItem")
+
+    add.addEventListener("click", addDrinks)
+    removeBtn.addEventListener("click", removeDrinks)
+
+    function addDrinks() {
+
+        const input = document.createElement("input")
+        input.type = "number"
+        input.placeholder = "tilføj"
+
+        listitem.appendChild(input)
+
+        input.addEventListener("keydown", function (e) {
+
+            if (e.key === "Enter") {
+
+                const value = Number(input.value)
+
+                number += value
+
+                history.push({
+                    type: "+",
+                    value: value,
+                    time: Date.now()
+                })
+
+                countText.textContent = `number: ${number}`
+
+                input.remove()
+
+                saveData()
+            }
+        })
+    }
+
+    function removeDrinks() {
+
+        const input = document.createElement("input")
+        input.type = "number"
+        input.placeholder = "fjern"
+
+        listitem.appendChild(input)
+
+        input.addEventListener("keydown", function (e) {
+
+            if (e.key === "Enter") {
+
+                const value = Number(input.value)
+
+                number -= value
+
+                history.push({
+                    type: "-",
+                    value: value,
+                    time: Date.now()
+                })
+
+                countText.textContent = `number: ${number}`
+
+                input.remove()
+
+                saveData()
+            }
+        })
+    }
+
+    deleteItem.addEventListener("click", () => {
+        listitem.remove()
+        saveData()
     })
-    const countText = listitem.querySelector("p")
 
-    let add = listitem.querySelector(".add")
-    let remove = listitem.querySelector(".remove")
+    const historik = listitem.querySelector(".historik")
+    const historyBox = listitem.querySelector(".historyBox")
 
-    add.addEventListener("click", number_drinks)
+    historik.addEventListener("click", showHistory)
 
-    function number_drinks() {
-    const number_tilføj = document.createElement("input")
-    number_tilføj.type = "number"
-    number_tilføj.placeholder = "tilføj"
+    function showHistory() {
 
-    listitem.appendChild(number_tilføj)
+        if (historyBox.style.display === "none") {
 
-    number_tilføj.addEventListener("keydown", function (e) {
-        if (e.key === "Enter") {
+            historyBox.style.display = "block"
 
-            number += Number(number_tilføj.value)
+            historyBox.innerHTML = history
+                .map(h => {
 
-            countText.textContent = `number: ${number}`
+                    const date = new Date(h.time)
 
-            number_tilføj.remove() 
+                    const time =
+                        date.toLocaleDateString() +
+                        " " +
+                        date.toLocaleTimeString()
+
+                    return `<p>${h.type}${h.value} — ${time}</p>`
+
+                })
+                .join("")
+
+        } else {
+
+            historyBox.style.display = "none"
+
         }
-    })
+    }
 
-    remove.addEventListener("click", number_drinks_remove)
-     function number_drinks_remove() {
-    const number_tilføj = document.createElement("input")
-    number_tilføj.type = "number"
-    number_tilføj.placeholder = "fjern"
+    function getData() {
 
-    listitem.appendChild(number_tilføj)
-
-    number_tilføj.addEventListener("keydown", function (e) {
-        if (e.key === "Enter") {
-
-            number -= Number(number_tilføj.value)
-
-            countText.textContent = `number: ${number}`
-
-            number_tilføj.remove() 
+        return {
+            number: number,
+            history: history,
+            name: nameInput.value,
         }
-    })
-} 
+    }
+
+    listitem.getData = getData
 }
 
+function saveData() {
+
+    const items = [...listElement.children]
+        .filter(el => typeof el.getData === "function")
+        .map(el => el.getData())
+
+    localStorage.setItem("drinkTracker", JSON.stringify(items))
+}
+
+function loadData() {
+
+    const saved = JSON.parse(localStorage.getItem("drinkTracker")) || []
+
+    saved.forEach(data => tilføj(data))
 }
